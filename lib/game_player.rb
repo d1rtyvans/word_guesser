@@ -3,7 +3,7 @@ require 'ruby-dictionary'
 require 'pry'
 
 
-require_relative 'indexer'
+require_relative 'word_index'
 
 class GameClient
   def self.start_game
@@ -138,14 +138,14 @@ end
 class WordIndexStrategy
   VOWEL_LIMIT = 2
 
-  attr_reader :vowels, :consonants, :indexer
+  attr_reader :vowels, :consonants, :word_index
 
-  def initialize(indexer:)
+  def initialize(word_index:)
     @vowels = %w[a e i o u]
     @consonants = ('a'..'z').to_a - @vowels
     @used_vowel_count = 0
     @used_letters = Set.new
-    @indexer = indexer
+    @word_index = word_index
   end
 
   def next_letter!(word_status)
@@ -160,7 +160,7 @@ class WordIndexStrategy
 
   def choose_letter_set(word_status)
     if use_word_index?(word_status)
-      return letter_set_from_word_index(word_status)
+      return word_index.letter_set(word_status)
     end
 
     # TODO: Make this strategy smarter. Mix the set once you get a single vowel
@@ -180,70 +180,15 @@ class WordIndexStrategy
   def use_word_index?(word_status)
     @use_word_index ||= word_status.count('_') < word_status.length
   end
-
-  # TODO: Handle when no words or letters found. Fall back on old strategy
-  def letter_set_from_word_index(word_status)
-    @word_index ||= build_word_index(word_status.length)
-
-    # TODO: Benchmark
-    # FIXME: This algo is gross can prob be cleaned up
-    word_sets = []
-    word_status.chars.each_with_index do |char, i|
-      next if char == '_'
-
-      begin
-        word_sets << @word_index[i][char]
-      rescue => e
-        puts char
-        puts i
-        # TODO: Handle
-      end
-    end
-
-    counts_by_word = {}
-    word_sets.each do |word_set|
-      word_set.keys.each do |word|
-        counts_by_word[word] ||= 0
-        counts_by_word[word] += 1
-      end
-    end
-
-    # TODO: Weight the characters based on frequency
-    final_word_set = []
-    counts_by_word.each do |word, count|
-      next unless count == word_sets.length
-
-      final_word_set << word
-    end
-
-    # TODO: Cache this, or just keep calculating it?
-    # TODO: HOW TO BE GREEDY OR USE DYNAMIC PROGRAMMING?
-    # Get diff of chars from word_status
-    final_letter_set = final_word_set.map(&:chars).flatten - word_status.tr('_', '').chars
-
-    final_letter_set
-  end
-
-  private
-
-  # Expects format:
-  #   index[word_length][char_index][char] = word[]
-  def build_word_index(length)
-    # OPTIMIZE:
-    #   Only build for words of exact length, dynamically
-    #   Skip the rest
-    #   or
-    #   Build offline
-    indexer.build(word_length: length)
-  end
 end
 
 # TODO: LETTER SCORE
 
 game = Game.new(GameClient)
 
-indexer = Indexer.new('scrabble_words_2019.txt.gz')
-strategy = WordIndexStrategy.new(indexer: indexer)
+# word_index = WordIndex.new('words_alpha.txt.gz')
+word_index = WordIndex.new('scrabble_words_2019.txt.gz')
+strategy = WordIndexStrategy.new(word_index: word_index)
 
 # strategy.choose_letter_set("ac_uain_ance")
 player = Player.new(game, strategy)
