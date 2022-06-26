@@ -2,7 +2,9 @@ require 'httparty'
 
 module Http
   class GameClient
-    Turn = Struct.new(:word_status, :game_over, :guesses_remaining)
+    Turn = Struct.new(:word_status, :game_over, :guesses_remaining, :hit)
+
+    attr_reader :previous_turn
 
     def start
       response = HTTParty.post('http://wordguess-interview.herokuapp.com/games')
@@ -32,8 +34,9 @@ module Http
       turn.word_status = payload['word_status']
       turn.game_over = payload['game_over']
       turn.guesses_remaining = payload['guesses_remaining']
+      turn.hit = (previous_turn && previous_turn.word_status != payload['word_status'])
 
-      turn
+      @previous_turn = turn
     end
 
     private

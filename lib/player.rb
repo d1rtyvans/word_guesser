@@ -34,7 +34,7 @@ class Player
 
   def next_letter
     first_unused_letter(
-      strategy.letter_set(game.word_status)
+      strategy.letter_set(game.word_status, game.miss?)
     )
   end
 

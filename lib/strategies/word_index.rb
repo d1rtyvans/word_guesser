@@ -18,7 +18,7 @@ module Strategies
       @all_words = Set.new
     end
 
-    def letter_set(word_status)
+    def letter_set(word_status, miss = false)
       # TODO: Refactor
       if word_status.chars.all?('_')
         @word_index = build_word_index(word_source, word_status.length)

@@ -18,6 +18,13 @@ class Game
     @turn.word_status
   end
 
+  # return true if an incorrect guess has been made
+  def miss?
+    return false if @turn.hit.nil?
+
+    !@turn.hit
+  end
+
   def over?
     @turn.game_over
   end

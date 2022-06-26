@@ -3,11 +3,11 @@ require 'faker'
 # TODO:
 module Local
   class GameClient
-    Turn = Struct.new(:word_status, :game_over, :guesses_remaining)
+    Turn = Struct.new(:word_status, :game_over, :guesses_remaining, :hit)
 
     GUESS_LIMIT = 15
 
-    attr_reader :word, :word_status, :guesses_remaining
+    attr_reader :word, :word_status, :guesses_remaining, :previous_turn
 
     def initialize(word)
       @word = word
@@ -50,7 +50,13 @@ module Local
     end
 
     def new_turn
-      Turn.new(word_status, game_over?, guesses_remaining)
+      turn = Turn.new
+      turn.word_status = word_status.dup
+      turn.game_over = game_over?
+      turn.guesses_remaining = guesses_remaining
+      turn.hit = (previous_turn && previous_turn.word_status != word_status)
+
+      @previous_turn = turn
     end
 
     def game_over?

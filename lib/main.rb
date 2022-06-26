@@ -10,7 +10,7 @@ require_relative 'strategies/word_index'
 
 
 client = Http::GameClient.new
-# client = Local::GameClient.new('swagger')
+# client = Local::GameClient.new('frazzle')
 game = Game.new(client)
 
 # source_path = 'word_sources/words_alpha.txt.gz'
