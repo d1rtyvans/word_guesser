@@ -5,61 +5,60 @@ require 'pry'
 
 require_relative 'word_index'
 
-class GameClient
-  def self.start_game
-    response = HTTParty.post('http://wordguess-interview.herokuapp.com/games')
-    JSON.parse(response.body)
+# TODO: Pretty print turn
+class Turn
+  attr_reader :word_status, :guesses_remaining
+
+  def initialize(game_over, word_status, guesses_remaining)
+    @game_over = game_over
+    @word_status = word_status
+    @guesses_remaining = guesses_remaining
   end
 
-  def self.new_guess(id, letter)
+  def game_over?
+    @game_over
+  end
+
+  def won?
+    !@word_status.include?('_')
+  end
+end
+
+class HttpGameClient
+  def start
+    response = HTTParty.post('http://wordguess-interview.herokuapp.com/games')
+    payload = JSON.parse(response.body)
+    @game_id = payload['id']
+
+    new_turn(payload)
+  end
+
+  def new_guess(letter)
     response = HTTParty.put(
       'http://wordguess-interview.herokuapp.com/games',
       body: {
-        id: id,
+        id: game_id,
         new_guess: letter
       }
     )
 
-    JSON.parse(response.body)
-  end
-end
-
-class Game
-  attr_reader :client, :game_id, :last_response
-
-  def initialize(client)
-    @client = client
-  end
-
-  def start
-    response = client.start_game
-    @game_id = response['id']
-    puts "Game ##{game_id} started."
-    @last_response = response
-  end
-
-  def new_guess(letter)
+    payload = JSON.parse(response.body)
     puts "Guess: #{letter}"
-    response = client.new_guess(game_id, letter)
-    puts response
-    @last_response = response
+    puts payload
+    new_turn(JSON.parse(response.body))
   end
 
-  def game_over?
-    last_response['game_over']
+  private
+
+  def new_turn(payload)
+    Turn.new(
+      payload['game_over'],
+      payload['word_status'],
+      payload['guesses_remaining']
+    )
   end
 
-  def won?
-    !last_response['word_status'].include?('_')
-  end
-
-  def word_status
-    last_response['word_status']
-  end
-
-  def last_response
-    @last_response || {}
-  end
+  attr_reader :game_id, :last_response
 end
 
 
@@ -72,66 +71,18 @@ class Player
   end
 
   def play_game
-    game.start
+    turn = game.start
 
-    until game.game_over?
-      next_letter = strategy.next_letter!(game.word_status)
-      game.new_guess(next_letter)
+    until turn.game_over?
+      next_letter = strategy.next_letter!(turn.word_status)
+      turn = game.new_guess(next_letter)
     end
 
-    if game.won?
+    if turn.won?
       puts 'Congrats'
     else
       puts 'Srry'
     end
-  end
-end
-
-class BaseStrategy
-  attr_reader :vowels, :consonants
-
-  def initialize(indexer: nil)
-    @vowels = %w[a e i o u]
-    @consonants = ('a'..'z').to_a - @vowels
-    @indexer = indexer
-  end
-
-  def next_letter!(word_status)
-    letter_set = choose_letter_set(word_status)
-    letter_set.delete_at(rand(letter_set.length))
-  end
-
-  def choose_letter_set(_word_status)
-    raise 'Must implement `choose_letter_set`'
-  end
-end
-
-class VowelsFirstStrategy < BaseStrategy
-  def choose_letter_set(_word_status)
-    if vowels.any?
-      return vowels
-    end
-
-    consonants
-  end
-end
-
-class LimitedVowelsFirstStrategy < BaseStrategy
-  VOWEL_LIMIT = 2
-
-  def choose_letter_set(_word_status)
-    @used_vowel_count ||= 0
-
-    if @used_vowel_count >= VOWEL_LIMIT
-      return vowels + consonants
-    end
-
-    if vowels.any?
-      @used_vowel_count += 1
-      return vowels
-    end
-
-    consonants
   end
 end
 
@@ -184,7 +135,7 @@ end
 
 # TODO: LETTER SCORE
 
-game = Game.new(GameClient)
+game = HttpGameClient.new
 
 # word_index = WordIndex.new('words_alpha.txt.gz')
 word_index = WordIndex.new('scrabble_words_2019.txt.gz')
