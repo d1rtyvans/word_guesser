@@ -6,11 +6,12 @@ class Game
   end
 
   def start
-    @turn = client.start
+    p @turn = client.start
   end
 
   def new_guess(letter)
-    @turn = client.new_guess(letter)
+    puts "Guess: #{letter}"
+    p @turn = client.new_guess(letter)
   end
 
   def word_status

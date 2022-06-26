@@ -22,8 +22,6 @@ module Http
       )
 
       payload = JSON.parse(response.body)
-      puts "Guess: #{letter}"
-      puts payload
       new_turn(payload)
     end
 
