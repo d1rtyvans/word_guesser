@@ -18,12 +18,16 @@ module Strategies
       @all_words = Set.new
     end
 
-    def letter_set(word_status, miss = false)
+    def letter_set(word_status, missed_letter: nil)
       # TODO: Refactor
       if word_status.chars.all?('_')
         @word_index = build_word_index(word_source, word_status.length)
         words = all_words
       else
+        if missed_letter
+          @potential_words.reject! { |word| word.include?(missed_letter) }
+        end
+
         if @potential_words
           @word_index = build_word_index(@potential_words, word_status.length)
         end

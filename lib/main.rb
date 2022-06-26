@@ -10,11 +10,11 @@ require_relative 'strategies/word_index'
 
 
 client = Http::GameClient.new
-# client = Local::GameClient.new('frazzle')
+# client = Local::GameClient.new('frazzled')
 game = Game.new(client)
 
-# source_path = 'word_sources/words_alpha.txt.gz'
-source_path = 'word_sources/scrabble_words_2019.txt.gz'
+source_path = 'word_sources/words_alpha.txt.gz'
+# source_path = 'word_sources/scrabble_words_2019.txt.gz'
 word_source = WordSources::GzippedTxt.new(source_path)
 
 strategy = Strategies::WordIndex.new(word_source)

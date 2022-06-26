@@ -1,5 +1,5 @@
 class Player
-  attr_reader :game, :strategy, :used_letters
+  attr_reader :game, :strategy, :used_letters, :last_guess
 
   def initialize(game, strategy)
     @strategy = strategy
@@ -11,7 +11,7 @@ class Player
     game.start
 
     until game.over?
-      game.new_guess(next_letter)
+      game.new_guess(next_guess)
     end
 
     print_result(game.winner?)
@@ -32,9 +32,9 @@ class Player
     puts '-------------'
   end
 
-  def next_letter
-    first_unused_letter(
-      strategy.letter_set(game.word_status, game.miss?)
+  def next_guess
+    @last_guess = first_unused_letter(
+      strategy.letter_set(game.word_status, missed_letter: missed_letter)
     )
   end
 
@@ -45,5 +45,11 @@ class Player
       @used_letters.add(letter)
       return letter
     end
+  end
+
+  def missed_letter
+    return unless game.miss?
+
+    last_guess
   end
 end
