@@ -1,5 +1,4 @@
 require 'set'
-require 'zlib'
 
 # NOTE: word sources
 #
@@ -12,25 +11,29 @@ require 'zlib'
 # Requires gzipped txt file with single word per line as input
 module Strategies
   class WordIndex
-    attr_reader :word_source_path, :word_index, :all_words
+    attr_reader :word_source, :word_index, :all_words
 
-    def initialize(word_source_path)
-      @word_source_path = word_source_path
+    def initialize(word_source)
+      @word_source = word_source
       @all_words = Set.new
     end
 
     def letter_set(word_status)
-      @word_index ||= build_word_index(word_status.length)
-
+      # TODO: Refactor
       if word_status.chars.all?('_')
+        @word_index = build_word_index(word_source, word_status.length)
         words = all_words
       else
+        if @potential_words
+          @word_index = build_word_index(@potential_words, word_status.length)
+        end
+
         word_sets = words_matching_char_positions(word_status)
         words = words_present_in_every_set(word_sets)
+        @potential_words = words
       end
 
-      # TODO: Cache this, or just keep calculating it?
-      # TODO: HOW TO BE GREEDY OR USE DYNAMIC PROGRAMMING?
+      # TODO: Cache this
       # Get diff of chars from word_status
       unordered_chars = all_possible_chars(words, word_status)
       sorted_set = frequency_sorted_char_set(unordered_chars).uniq
@@ -86,20 +89,11 @@ module Strategies
       counts.to_a.sort { |a, b| b[1] <=> a[1] }.map(&:first)
     end
 
-    # ~0.4 seconds
-    def build_word_index(word_length)
+    def build_word_index(words, word_length)
       started = Time.now
-
       index = {}
-      # TODO: Benchmark without gzip
-      file = File.open(word_source_path)
-      reader = Zlib::GzipReader.new(file)
 
-      puts "Building index from '#{word_source_path}'"
-      reader.each_line do |line|
-        word = line.chomp
-        word.downcase!
-
+      words.each do |word|
         next if word.length != word_length
 
         all_words.add(word)
@@ -109,10 +103,10 @@ module Strategies
 
           index[i][char][word] = true
         end
-
       end
 
-      puts "Index built in: #{Time.now - started} seconds."
+      # Don't care about logging rebuild since they're fast
+      puts "Index built in: #{Time.now - started} seconds." if @word_index.nil?
       index
     end
   end
